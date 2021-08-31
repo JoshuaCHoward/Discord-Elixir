@@ -32,7 +32,11 @@ defmodule Discord.MixProject do
       {:discord_foundation, in_umbrella: true},
       {:plug_cowboy, "~> 2.2"},
       {:jason, "~> 1.2"},
-      {:jose, "~> 1.11.2"}
+      {:jose, "~> 1.11.2"},
+      {:mongodb_driver, "~> 0.7"},
+      {:gen_stage, "~> 1.1.1"},
+
+
     ]
   end
 end

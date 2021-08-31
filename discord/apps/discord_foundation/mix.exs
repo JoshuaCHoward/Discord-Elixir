@@ -35,8 +35,8 @@ defmodule DiscordFoundation.MixProject do
 #      {:mongodb_ecto, git: "https://github.com/elixir-mongo/mongodb_ecto", branch: "ecto3"},
       {:ecto, "~>3.7.0"},
       {:mongodb_driver, "~> 0.7"},
-      {:html_sanitize_ex, "~> 1.3.0-rc3"}
-
+      {:html_sanitize_ex, "~> 1.3.0-rc3"},
+      { :uuid, "~> 1.1" }
 
 
 

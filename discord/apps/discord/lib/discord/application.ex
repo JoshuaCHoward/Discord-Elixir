@@ -29,7 +29,11 @@ defmodule Discord.Application do
       # Starts a worker by calling: Discord.Worker.start_link(arg)
       # {Discord.Worker, arg}
       websocket_listener(@websocket_config),
-      {Discord.Server.Supervisor,[] }
+      {Discord.MongoWatch.Supervisor,[name: :mongowatchsupervisor]},
+      {Discord.Server.DynamicSupervisor,[name: :serversupervisor ] },
+      {Discord.SocketEventHandler.Supervisor,[name: :socketeventhandlersupervisor]}
+
+
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

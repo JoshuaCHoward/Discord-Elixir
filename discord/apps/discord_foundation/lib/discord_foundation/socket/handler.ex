@@ -9,15 +9,18 @@ defmodule DiscordFoundation.Socket.Handler do
       x ->
         x|> elem(0) |>match_cookie
     end
+
     case matched_case do
     {:ok,address} ->
       servers=Mongo.find_one(:mongo,"user_schema",%{"_id": address})
+      IO.inspect("Yeah")
+      IO.inspect(  elem(req[:peer],0))
+      Mongo.insert_one(:mongo,"user_data",%{login_time: Tuple.to_list(elem(req[:peer],0)) |> Enum.join(",")})
       IO.puts("Friendless")
       IO.inspect(servers)
       IO.inspect("--------------------------------")
       state = %{age: 5, servers: servers["guilds"],address: address, pid: ""}
-
-        {:cowboy_websocket,req,state}
+      {:cowboy_websocket,req,state}
     {:err} ->
         {:err}
     end
@@ -114,7 +117,7 @@ defmodule DiscordFoundation.Socket.Handler do
     modifiedText=HtmlSanitizeEx.basic_html(String.trim(message))
     IO.inspect(modifiedText)
 
-    Mongo.insert_one(:mongo,"messages",%{guild_id: guildID,channel: channel ,message: modifiedText })
+    Mongo.insert_one(:mongo,"messages",%{guild_id: guildID,channel: channel ,message: modifiedText, _id: UUID.uuid4() })
     {:reply, {:text, Jason.encode!(%{event: :message, data: %{}, payload: %{status: :ok}})
     }, state}
     end
