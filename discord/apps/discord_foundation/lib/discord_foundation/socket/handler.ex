@@ -19,7 +19,15 @@ defmodule DiscordFoundation.Socket.Handler do
       IO.puts("Friendless")
       IO.inspect(servers)
       IO.inspect("--------------------------------")
+
       state = %{age: 5, servers: servers["guilds"],address: address, pid: ""}
+      Enum.each(servers["guilds"], fn x->
+        Discord.Server.DynamicSupervisor.start_server(x)
+        IO.inspect("WHat")
+        IO.inspect(String.to_atom(x))
+#        mme=GenServer.call(String.to_atom(x),{:push,x})
+#        GenServer.call(String.to_atom(x), :pop)
+      end)
       {:cowboy_websocket,req,state}
     {:err} ->
         {:err}
@@ -51,6 +59,15 @@ defmodule DiscordFoundation.Socket.Handler do
   #Called on websocket connection initialization.
   def websocket_init( state) do
     send(self(),{:start, state.servers})
+    Enum.each(state.servers, fn x->
+      IO.inspect(String.to_atom(x))
+      onlineList=GenServer.call(String.to_atom(x),{:push,state.address})
+      #        GenServer.call(String.to_atom(x), :pop)
+      IO.inspect("AHHH")
+      send(self(),{:online, {x,onlineList}})
+
+      IO.inspect("Weak self")
+    end)
     {:ok, %{state | age: 30, pid: self()}}
   end
 
@@ -117,7 +134,12 @@ defmodule DiscordFoundation.Socket.Handler do
     modifiedText=HtmlSanitizeEx.basic_html(String.trim(message))
     IO.inspect(modifiedText)
 
-    Mongo.insert_one(:mongo,"messages",%{guild_id: guildID,channel: channel ,message: modifiedText, _id: UUID.uuid4() })
+    Task.Supervisor.start_child(:tasksupervisor,fn->
+      Mongo.insert_one(:mongo,"messages",%{guild_id: guildID,channel: channel ,message: modifiedText, _id: UUID.uuid4() })
+    end)
+#    messageReturn=GenServer.call(String.to_atom(guildID),{:message, channel, message})
+        messageReturn=GenServer.call(String.to_atom(guildID),{:message, channel, message})
+
     {:reply, {:text, Jason.encode!(%{event: :message, data: %{}, payload: %{status: :ok}})
     }, state}
     end
@@ -145,6 +167,18 @@ defmodule DiscordFoundation.Socket.Handler do
     }, state}
 
   end
+
+
+  def websocket_info({:online,data}, state) do
+    IO.inspect(data)
+    IO.puts("SHACO STICKS")
+
+    {:reply, {:text, Jason.encode!(%{event: :online_list, data: %{server: elem(data,0), serverList: elem(data,1) }, payload: %{status: :ok}})
+    }, state}
+
+  end
+
+
 
   # No matter why we terminate, remove all of this pids subscriptions
   def websocket_terminate(_reason, _req, _state) do

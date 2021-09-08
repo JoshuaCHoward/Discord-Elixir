@@ -4,6 +4,8 @@ defmodule Discord.Application do
   @moduledoc false
 
   use Application
+  alias ExHashRing.Ring
+
   @websocket_config  [
     port: 4000,
     dispatch_matches: [
@@ -28,13 +30,16 @@ defmodule Discord.Application do
     children = [
       # Starts a worker by calling: Discord.Worker.start_link(arg)
       # {Discord.Worker, arg}
+      {Discord.Server.DynamicSupervisor,[name: :serversupervisor ] },
       websocket_listener(@websocket_config),
       {Discord.MongoWatch.Supervisor,[name: :mongowatchsupervisor]},
-      {Discord.Server.DynamicSupervisor,[name: :serversupervisor ] },
-      {Discord.SocketEventHandler.Supervisor,[name: :socketeventhandlersupervisor]}
-
-
+      {Discord.SocketEventHandler.Supervisor,[name: :socketeventhandlersupervisor]},
+      {Task.Supervisor,[name: :tasksupervisor]},
+#      {Discord.Chief.MasterServer,[name: :masterserver]}
+#      {Discord.Chief.MasterServer,[{:global, :masterserver}]}
+      {Ring,[name: {:global,:serverring}]},
     ]
+
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options

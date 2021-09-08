@@ -35,6 +35,8 @@ defmodule Discord.MixProject do
       {:jose, "~> 1.11.2"},
       {:mongodb_driver, "~> 0.7"},
       {:gen_stage, "~> 1.1.1"},
+      {:ex_hash_ring, "~> 6.0.1"},
+
 
 
     ]

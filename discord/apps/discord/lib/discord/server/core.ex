@@ -4,7 +4,9 @@ defmodule Discord.Server.Core do
   use GenServer
 
   def start_link(state) do
-    GenServer.start_link(__MODULE__, state, name: __MODULE__)
+    IO.inspect(state)
+    IO.inspect("Hero Killer")
+    GenServer.start_link(__MODULE__, state, name: String.to_atom(state.id))
   end
 
   ## Callbacks
@@ -13,7 +15,7 @@ defmodule Discord.Server.Core do
 
   @impl true
   def init(stack) do
-    IO.inspect("HOLAA")
+    stack=%{online: MapSet.new()}
     {:ok, stack}
   end
 
@@ -23,8 +25,23 @@ defmodule Discord.Server.Core do
   end
 
   @impl true
-  def handle_cast({:push, head}, tail) do
-    {:noreply, [head | tail]}
+  def handle_call({:push,x},_from, state) do
+    IO.inspect("YARE YARE")
+    state=%{state|online: MapSet.put(state.online,x)}
+    {:reply, MapSet.to_list(state.online),state}
+  end
+
+  @impl true
+  def handle_call({:message,channel,message},_from, state) do
+    IO.inspect("BADBOYS")
+    {:reply, MapSet.to_list(state.online),state}
+  end
+
+
+
+  @impl true
+  def handle_cast({:push, head}, state) do
+    {:noreply,%{state | online: [head | state.online]}}
   end
 
   def handle_in(x) do
