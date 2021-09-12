@@ -2,6 +2,8 @@ defmodule DiscordFoundation.Socket.Handler do
   @behaviour :cowboy_websocket_handler
   @timeout 2
   alias Cowboy
+  alias ExHashRing.Ring
+
   def init(req, state) do
     IO.puts("YEYE")
     matched_case=case {get_in(req,[:headers,"cookie"])} do
@@ -28,6 +30,7 @@ defmodule DiscordFoundation.Socket.Handler do
 #        mme=GenServer.call(String.to_atom(x),{:push,x})
 #        GenServer.call(String.to_atom(x), :pop)
       end)
+
       {:cowboy_websocket,req,state}
     {:err} ->
         {:err}
@@ -50,6 +53,7 @@ defmodule DiscordFoundation.Socket.Handler do
 
     end
 
+
   end
   def init(_, _req, _opts) do
 
@@ -59,9 +63,11 @@ defmodule DiscordFoundation.Socket.Handler do
   #Called on websocket connection initialization.
   def websocket_init( state) do
     send(self(),{:start, state.servers})
+    :ets.insert(:socket_connection_registry,{state.address,self()})
+
     Enum.each(state.servers, fn x->
       IO.inspect(String.to_atom(x))
-      onlineList=GenServer.call(String.to_atom(x),{:push,state.address})
+      onlineList=GenServer.call(String.to_atom(x),{:push,{state.address,node()}})
       #        GenServer.call(String.to_atom(x), :pop)
       IO.inspect("AHHH")
       send(self(),{:online, {x,onlineList}})
@@ -138,7 +144,10 @@ defmodule DiscordFoundation.Socket.Handler do
       Mongo.insert_one(:mongo,"messages",%{guild_id: guildID,channel: channel ,message: modifiedText, _id: UUID.uuid4() })
     end)
 #    messageReturn=GenServer.call(String.to_atom(guildID),{:message, channel, message})
-        messageReturn=GenServer.call(String.to_atom(guildID),{:message, channel, message})
+    global_pid=:global.whereis_name(:serverring)
+    node=Ring.find_node(global_pid,String.to_atom(guildID)) |> elem(1)
+
+    messageReturn=GenServer.call({String.to_atom(guildID),node},{:message, channel, message})
 
     {:reply, {:text, Jason.encode!(%{event: :message, data: %{}, payload: %{status: :ok}})
     }, state}
@@ -163,6 +172,7 @@ defmodule DiscordFoundation.Socket.Handler do
 
 #    {:reply, {:text, Jason.encode(%{event: :start, payload: %{status: :ok}})}, state}
 #
+
     {:reply, {:text, Jason.encode!(%{event: :start, data: %{servers: serverList}, payload: %{status: :ok}})
     }, state}
 
@@ -172,16 +182,35 @@ defmodule DiscordFoundation.Socket.Handler do
   def websocket_info({:online,data}, state) do
     IO.inspect(data)
     IO.puts("SHACO STICKS")
-
+    IO.puts("NOT SHACO STICK")
     {:reply, {:text, Jason.encode!(%{event: :online_list, data: %{server: elem(data,0), serverList: elem(data,1) }, payload: %{status: :ok}})
     }, state}
 
   end
 
 
+#  def websocket_info({:online,data}, state) do
+#    IO.inspect(data)
+#    IO.puts("SHACO STICKS")
+#
+#    {:reply, {:text, Jason.encode!(%{event: :online_list, data: %{server: elem(data,0), serverList: elem(data,1) }, payload: %{status: :ok}})
+#    }, state}
+#
+#  end
+
+  def websocket_info({:message,guild_id,channel,message}, state) do
+    IO.puts("YORICK STICKS")
+    IO.inspect(guild_id)
+    IO.inspect("PEACE")
+    {:reply, {:text, Jason.encode!(%{event: :message, data: %{message: message, channel: channel, guild_id: guild_id }, payload: %{status: :ok}})
+    }, state}
+
+  end
 
   # No matter why we terminate, remove all of this pids subscriptions
-  def websocket_terminate(_reason, _req, _state) do
+  def terminate(_reason, _req, state) do
+    :ets.delete_object(:socket_connection_registry,{state.address,self()})
+    IO.inspect("GOD KILLING SPEAR")
     :ok
   end
 end

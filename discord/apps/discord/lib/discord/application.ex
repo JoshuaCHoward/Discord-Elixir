@@ -30,14 +30,19 @@ defmodule Discord.Application do
     children = [
       # Starts a worker by calling: Discord.Worker.start_link(arg)
       # {Discord.Worker, arg}
+      Supervisor.child_spec({Ring, [name: :userRing]}, id: :userRing),
+
       {Discord.Server.DynamicSupervisor,[name: :serversupervisor ] },
       websocket_listener(@websocket_config),
       {Discord.MongoWatch.Supervisor,[name: :mongowatchsupervisor]},
       {Discord.SocketEventHandler.Supervisor,[name: :socketeventhandlersupervisor]},
       {Task.Supervisor,[name: :tasksupervisor]},
-#      {Discord.Chief.MasterServer,[name: :masterserver]}
+      {Discord.Chief.MasterServer,[name: :masterserver]},
 #      {Discord.Chief.MasterServer,[{:global, :masterserver}]}
       {Ring,[name: {:global,:serverring}]},
+#      {Ring,[name: :userRing]},
+
+
     ]
 
 

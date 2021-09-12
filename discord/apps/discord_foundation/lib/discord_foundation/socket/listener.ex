@@ -16,6 +16,9 @@ defmodule DiscordFoundation.Socket.Listener do
     ),
       {Redix,host: "redis-16848.c253.us-central1-1.gce.cloud.redislabs.com", password: "ToTestMe1!", username: "ToTestMe",port: 16848, name: :redix},
     ]
+
+    :ets.new(:socket_connection_registry,[:bag,:named_table,:public])
+
     Supervisor.init(children, strategy: :one_for_one)
 
   end
