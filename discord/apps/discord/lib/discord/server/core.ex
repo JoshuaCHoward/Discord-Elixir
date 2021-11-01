@@ -58,6 +58,30 @@ defmodule Discord.Server.Core do
   end
 
 
+  @impl true
+  def handle_call({:pop,{node,address,pid}},_from, state) do
+    IO.inspect("YARE YARE")
+    #    state.online=Keyword.put(state.online,node,[x|currentOnlineList])
+    online=Map.update(state.online,node, [],fn existing_value ->
+      case existing_value do
+        _ -> Enum.reject(existing_value, fn online_user ->
+          IO.inspect("Leave Me Alone")
+          IO.inspect(address)
+          IO.inspect(online_user)
+        online_user==address
+        end)
+
+      end
+    end)
+
+
+    IO.inspect("NEMO")
+    IO.inspect(state.online)
+    IO.inspect(online)
+    IO.inspect(List.flatten(Map.values(online)))
+    state=%{state|online: online}
+    {:reply, List.flatten(Map.values(online)),state}
+  end
 
 
 

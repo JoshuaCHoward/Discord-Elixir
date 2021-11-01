@@ -101,13 +101,47 @@ defmodule DiscordFoundation.Socket.Handler do
 
   def handle_in(%{"event" => "new_guild" ,"payload"=> payload }, state) do
     IO.puts("Joke")
+    IO.inspect(payload)
+
+#    Enum.each(servers["guilds"], fn x->
+#      Discord.Server.DynamicSupervisor.start_server(x)
+#      IO.inspect("WHat")
+#      IO.inspect(String.to_atom(x))
+#      #        mme=GenServer.call(String.to_atom(x),{:push,x})
+#      #        GenServer.call(String.to_atom(x), :pop)
+#    end)
+
+    IO.inspect("VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV")
     state=Map.update!(state,:servers,fn x->
     case payload["data"]["guild_id"] do
       nil->x
-      _->[payload["data"]["guild_id"]|x]
+      guildID->
+          Discord.Server.DynamicSupervisor.start_server(guildID)
+          IO.inspect("WHat")
+          IO.inspect(String.to_atom(guildID))
+          global_pid=:global.whereis_name(:serverring)
+          node=Ring.find_node(global_pid,String.to_atom(guildID)) |> elem(1)
+          onlineList=GenServer.call({String.to_atom(guildID),node},{:push,{state.address,node()}})
+
+      #        mme=GenServer.call(String.to_atom(x),{:push,x})
+          #        GenServer.call(String.to_atom(x), :pop)
+#        global_pid=:global.whereis_name(:serverring)
+#        node=Ring.find_node(global_pid,String.to_atom(guildID)) |> elem(1)
 
     end
     end)
+
+
+
+
+
+
+
+
+
+
+
+
 
     case payload["data"]["guild_id"] do
       nil->{:err}
@@ -117,6 +151,13 @@ defmodule DiscordFoundation.Socket.Handler do
     servers=Mongo.find(:mongo, "guild_schema" ,%{"_id": payload["data"]["guild_id"]},[projection: %{"_id"=> 1, "guild_picture"=> 1, "channels"=>1}]).docs
 
     IO.puts("Horrible")
+
+
+
+
+
+
+
 
     {:reply, {:text, Jason.encode!(%{event: :new_guild,data: %{servers: servers}, payload: %{status: "ok"}})
     }, state}
@@ -209,8 +250,19 @@ defmodule DiscordFoundation.Socket.Handler do
 
   # No matter why we terminate, remove all of this pids subscriptions
   def terminate(_reason, _req, state) do
+      IO.inspect("OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
+      IO.inspect(state)
+      IO.inspect("Is this the end")
+      Enum.each(state.servers, fn guildID->
+        global_pid=:global.whereis_name(:serverring)
+        node=Ring.find_node(global_pid,String.to_atom(guildID)) |> elem(1)
+        messageReturn=GenServer.call({String.to_atom(guildID),node},{:pop, {node(),state.address,self()}})
+      end)
+#    global_pid=:global.whereis_name(:serverring)
+#    node=Ring.find_node(global_pid,String.to_atom(guildID)) |> elem(1)
+#    messageReturn=GenServer.call({String.to_atom(guildID),node},{:message, channel, message})
     :ets.delete_object(:socket_connection_registry,{state.address,self()})
-    IO.inspect("GOD KILLING SPEAR")
+
     :ok
   end
 end
